@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 YCSB contributors. All rights reserved.
+ * Copyright (c) 2018 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -42,10 +42,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  */
 public class RocksDBClient extends DB {
 
-  public static final String PROP_ROCKSDB_DIR = "rocksdb.dir";
-  private static final String CF_NAMES_FILENAME = "CF_NAMES";
+  static final String PROPERTY_ROCKSDB_DIR = "rocksdb.dir";
+  private static final String COLUMN_FAMILY_NAMES_FILENAME = "CF_NAMES";
 
-  @GuardedBy("RocksDBClient.class") private static Path rocksdbDir = null;
+  @GuardedBy("RocksDBClient.class") private static Path rocksDbDir = null;
   @GuardedBy("RocksDBClient.class") private static RocksObject dbOptions = null;
   @GuardedBy("RocksDBClient.class") private static RocksDB rocksDb = null;
   @GuardedBy("RocksDBClient.class") private static int references = 0;
@@ -57,8 +57,8 @@ public class RocksDBClient extends DB {
   public void init() throws DBException {
     synchronized(RocksDBClient.class) {
       if(rocksDb == null) {
-        rocksdbDir = Paths.get(getProperties().getProperty(PROP_ROCKSDB_DIR));
-        System.out.println("RocksDB data dir: " + rocksdbDir);
+        rocksDbDir = Paths.get(getProperties().getProperty(PROPERTY_ROCKSDB_DIR));
+        System.out.println("RocksDB data dir: " + rocksDbDir);
 
         try {
           rocksDb = initRocksDB();
@@ -72,8 +72,8 @@ public class RocksDBClient extends DB {
   }
 
   private RocksDB initRocksDB() throws IOException, RocksDBException {
-    if(!Files.exists(rocksdbDir)) {
-      Files.createDirectories(rocksdbDir);
+    if(!Files.exists(rocksDbDir)) {
+      Files.createDirectories(rocksDbDir);
     }
 
     final List<String> cfNames = loadColumnFamilyNames();
@@ -102,8 +102,7 @@ public class RocksDBClient extends DB {
           .setMaxBackgroundCompactions(rocksThreads)
           .setInfoLogLevel(InfoLogLevel.INFO_LEVEL);
       dbOptions = options;
-      return RocksDB.open(options, rocksdbDir.toAbsolutePath().toString());
-
+      return RocksDB.open(options, rocksDbDir.toAbsolutePath().toString());
     } else {
       final DBOptions options = new DBOptions()
           .setCreateIfMissing(true)
@@ -114,7 +113,7 @@ public class RocksDBClient extends DB {
       dbOptions = options;
 
       final List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
-      final RocksDB db = RocksDB.open(options, rocksdbDir.toAbsolutePath().toString(), cfDescriptors, cfHandles);
+      final RocksDB db = RocksDB.open(options, rocksDbDir.toAbsolutePath().toString(), cfDescriptors, cfHandles);
       for(int i = 0; i < cfNames.size(); i++) {
         COLUMN_FAMILIES.put(cfNames.get(i), new ColumnFamily(cfHandles.get(i), cfOptionss.get(i)));
       }
@@ -145,7 +144,7 @@ public class RocksDBClient extends DB {
           saveColumnFamilyNames();
           COLUMN_FAMILIES.clear();
 
-          rocksdbDir = null;
+          rocksDbDir = null;
         }
 
       } catch (final IOException e) {
@@ -270,8 +269,8 @@ public class RocksDBClient extends DB {
   }
 
   private void saveColumnFamilyNames() throws IOException {
-    final Path file = rocksdbDir.resolve(CF_NAMES_FILENAME);
-    try(final PrintWriter writer = new PrintWriter(new OutputStreamWriter(Files.newOutputStream(file), UTF_8))) {
+    final Path file = rocksDbDir.resolve(COLUMN_FAMILY_NAMES_FILENAME);
+    try(final PrintWriter writer = new PrintWriter(Files.newBufferedWriter(file, UTF_8))) {
       writer.println(new String(RocksDB.DEFAULT_COLUMN_FAMILY, UTF_8));
       for(final String cfName : COLUMN_FAMILIES.keySet()) {
         writer.println(cfName);
@@ -281,10 +280,10 @@ public class RocksDBClient extends DB {
 
   private List<String> loadColumnFamilyNames() throws IOException {
     final List<String> cfNames = new ArrayList<>();
-    final Path file = rocksdbDir.resolve(CF_NAMES_FILENAME);
+    final Path file = rocksDbDir.resolve(COLUMN_FAMILY_NAMES_FILENAME);
     if(Files.exists(file)) {
       try (final LineNumberReader reader =
-               new LineNumberReader(new InputStreamReader(Files.newInputStream(file), UTF_8))) {
+               new LineNumberReader(Files.newBufferedReader(file, UTF_8))) {
         String line = null;
         while ((line = reader.readLine()) != null) {
           cfNames.add(line);

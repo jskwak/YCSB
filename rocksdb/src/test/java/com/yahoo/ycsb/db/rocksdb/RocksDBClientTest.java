@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 YCSB contributors. All rights reserved.
+ * Copyright (c) 2018 YCSB contributors. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
@@ -54,7 +54,7 @@ public class RocksDBClientTest {
     instance = new RocksDBClient();
 
     final Properties properties = new Properties();
-    properties.setProperty(RocksDBClient.PROP_ROCKSDB_DIR, tmpFolder.getRoot().getAbsolutePath());
+    properties.setProperty(RocksDBClient.PROPERTY_ROCKSDB_DIR, tmpFolder.getRoot().getAbsolutePath());
     instance.setProperties(properties);
 
     instance.init();
