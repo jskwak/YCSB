@@ -21,6 +21,8 @@ import com.yahoo.ycsb.*;
 import com.yahoo.ycsb.Status;
 import net.jcip.annotations.GuardedBy;
 import org.rocksdb.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -37,13 +39,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * RocksDB binding for <a href="http://rocksdb.org/">RocksDB</a>.
  *
  * See {@code rocksdb/README.md} for details.
- *
- * @author <a href="mailto:adam@evolvedbinary.com">Adam Retter</a>
  */
 public class RocksDBClient extends DB {
 
   static final String PROPERTY_ROCKSDB_DIR = "rocksdb.dir";
   private static final String COLUMN_FAMILY_NAMES_FILENAME = "CF_NAMES";
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(RocksDBClient.class);
 
   @GuardedBy("RocksDBClient.class") private static Path rocksDbDir = null;
   @GuardedBy("RocksDBClient.class") private static RocksObject dbOptions = null;
@@ -58,7 +60,7 @@ public class RocksDBClient extends DB {
     synchronized(RocksDBClient.class) {
       if(rocksDb == null) {
         rocksDbDir = Paths.get(getProperties().getProperty(PROPERTY_ROCKSDB_DIR));
-        System.out.println("RocksDB data dir: " + rocksDbDir);
+        LOGGER.info("RocksDB data dir: " + rocksDbDir);
 
         try {
           rocksDb = initRocksDB();
@@ -71,6 +73,13 @@ public class RocksDBClient extends DB {
     }
   }
 
+  /**
+   * Initializes and opens the RocksDB database.
+   *
+   * Should only be called with a {@code synchronized(RocksDBClient.class)` block}.
+   *
+   * @return The initialized and open RocksDB instance.
+   */
   private RocksDB initRocksDB() throws IOException, RocksDBException {
     if(!Files.exists(rocksDbDir)) {
       Files.createDirectories(rocksDbDir);
@@ -171,7 +180,7 @@ public class RocksDBClient extends DB {
       deserializeValues(values, fields, result);
       return Status.OK;
     } catch(final RocksDBException e) {
-      e.printStackTrace();
+      LOGGER.error(e.getMessage(), e);
       return Status.ERROR;
     }
   }
@@ -198,7 +207,7 @@ public class RocksDBClient extends DB {
 
       return Status.OK;
     } catch(final RocksDBException e) {
-      e.printStackTrace();
+      LOGGER.error(e.getMessage(), e);
       return Status.ERROR;
     }
   }
@@ -229,7 +238,7 @@ public class RocksDBClient extends DB {
       return Status.OK;
 
     } catch(final RocksDBException | IOException e) {
-      e.printStackTrace();
+      LOGGER.error(e.getMessage(), e);
       return Status.ERROR;
     }
   }
@@ -246,7 +255,7 @@ public class RocksDBClient extends DB {
 
       return Status.OK;
     } catch(final RocksDBException | IOException e) {
-      e.printStackTrace();
+      LOGGER.error(e.getMessage(), e);
       return Status.ERROR;
     }
   }
@@ -263,7 +272,7 @@ public class RocksDBClient extends DB {
 
       return Status.OK;
     } catch(final RocksDBException e) {
-      e.printStackTrace();
+      LOGGER.error(e.getMessage(), e);
       return Status.ERROR;
     }
   }
